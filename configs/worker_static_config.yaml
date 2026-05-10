@@ -1,0 +1,56 @@
+# rhythm_worker: без HTTP, только Rabbit consumer + Postgres.
+# Очередь `rhythm.user.action` в Rabbit: создайте и привяжите к routing key `user.action` (как в ActionService::PublishJson).
+
+components_manager:
+  task_processors:
+    main-task-processor:
+      worker_threads: 4
+    fs-task-processor:
+      worker_threads: 2
+
+  default_task_processor: main-task-processor
+
+  components:
+    secdist: {}
+
+    default-secdist-provider:
+      config: configs/secdist_worker.example.json
+      missing-ok: true
+      environment-secrets-key: SECDIST_CONFIG
+
+    rhythm-rabbit:
+      secdist_alias: rhythm-rabbit-alias
+      min_pool_size: 1
+      max_pool_size: 5
+      max_in_flight_requests: 5
+      use_secure_connection: false
+
+    rhythm-pg:
+      dbconnection: 'postgresql://rhythm:rhythm@127.0.0.1:5432/rhythm'
+      blocking_task_processor: fs-task-processor
+      dns_resolver: async
+
+    dynamic-config:
+      defaults:
+        POSTGRES_CONNECTION_POOL_SETTINGS:
+          rhythm-pg:
+            max_pool_size: 10
+            min_pool_size: 1
+            max_queue_size: 100
+
+    user-action-consumer:
+      rabbit_name: rhythm-rabbit
+      queue: rhythm.user.action
+      prefetch_count: 4
+      postgres_name: rhythm-pg
+
+    dns-client:
+      fs-task-processor: fs-task-processor
+
+    logging:
+      fs-task-processor: fs-task-processor
+      loggers:
+        default:
+          file_path: '@stderr'
+          level: info
+          overflow_behavior: discard

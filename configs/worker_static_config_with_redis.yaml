@@ -1,0 +1,71 @@
+# rhythm_worker + инвалидация Redis после INSERT (собирать с -DRHYTHM_BUILD_WORKER=ON -DRHYTHM_WORKER_WITH_REDIS=ON).
+# Секреты: configs/secdist_stack.example.json (Rabbit + Redis) или SECDIST_CONFIG.
+
+components_manager:
+  task_processors:
+    main-task-processor:
+      worker_threads: 4
+    fs-task-processor:
+      worker_threads: 2
+
+  default_task_processor: main-task-processor
+
+  components:
+    secdist: {}
+
+    default-secdist-provider:
+      config: configs/secdist_stack.example.json
+      missing-ok: true
+      environment-secrets-key: SECDIST_CONFIG
+
+    dns-client:
+      fs-task-processor: fs-task-processor
+
+    rhythm-pg:
+      dbconnection: 'postgresql://rhythm:rhythm@127.0.0.1:5432/rhythm'
+      blocking_task_processor: fs-task-processor
+      dns_resolver: async
+
+    dynamic-config:
+      defaults:
+        POSTGRES_CONNECTION_POOL_SETTINGS:
+          rhythm-pg:
+            max_pool_size: 10
+            min_pool_size: 1
+            max_queue_size: 100
+
+    rhythm-rabbit:
+      secdist_alias: rhythm-rabbit-alias
+      min_pool_size: 1
+      max_pool_size: 5
+      max_in_flight_requests: 5
+      use_secure_connection: false
+
+    rhythm-redis:
+      groups:
+        - config_name: rhythm-redis-secdist
+          db: rhythm-cache
+          sharding_strategy: RedisCluster
+      thread_pools:
+        redis_thread_pool_size: 4
+        sentinel_thread_pool_size: 1
+
+    rhythm-redis-data:
+      redis_component: rhythm-redis
+      redis_db: rhythm-cache
+      visit_ledger_ttl: 7776000
+
+    user-action-consumer:
+      rabbit_name: rhythm-rabbit
+      queue: rhythm.user.action
+      prefetch_count: 4
+      postgres_name: rhythm-pg
+      redis_cache_component: rhythm-redis-data
+
+    logging:
+      fs-task-processor: fs-task-processor
+      loggers:
+        default:
+          file_path: '@stderr'
+          level: info
+          overflow_behavior: discard

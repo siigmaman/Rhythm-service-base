@@ -1,0 +1,64 @@
+# HTTP + Redis (кластер или standalone через userver; собирать с -DRHYTHM_WITH_REDIS=ON).
+# Секреты: configs/secdist_redis.example.json или SECDIST_CONFIG.
+
+components_manager:
+  task_processors:
+    main-task-processor:
+      worker_threads: 4
+    fs-task-processor:
+      worker_threads: 2
+
+  default_task_processor: main-task-processor
+
+  components:
+    secdist: {}
+
+    default-secdist-provider:
+      config: configs/secdist_redis.example.json
+      missing-ok: true
+      environment-secrets-key: SECDIST_CONFIG
+
+    rhythm-redis:
+      groups:
+        - config_name: rhythm-redis-secdist
+          db: rhythm-cache
+          sharding_strategy: RedisCluster
+      thread_pools:
+        redis_thread_pool_size: 4
+        sentinel_thread_pool_size: 1
+
+    rhythm-redis-data:
+      redis_component: rhythm-redis
+      redis_db: rhythm-cache
+      visit_ledger_ttl: 7776000
+
+    handler-action:
+      path: /action
+      method: POST
+      task_processor: main-task-processor
+
+    handler-recommend:
+      path: /recommend
+      method: GET
+      task_processor: main-task-processor
+
+    handler-product:
+      path: /product
+      method: GET
+      task_processor: main-task-processor
+
+    server:
+      listener:
+        port: 8080
+        task_processor: main-task-processor
+
+    dns-client:
+      fs-task-processor: fs-task-processor
+
+    logging:
+      fs-task-processor: fs-task-processor
+      loggers:
+        default:
+          file_path: '@stderr'
+          level: info
+          overflow_behavior: discard

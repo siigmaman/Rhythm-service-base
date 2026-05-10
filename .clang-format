@@ -1,0 +1,7 @@
+# Минимальный стиль, совместимый со stock clang-format (как у userver: Google + 120 колонок).
+BasedOnStyle: Google
+ColumnLimit: 120
+IndentWidth: 4
+TabWidth: 4
+DerivePointerAlignment: false
+IncludeBlocks: Preserve

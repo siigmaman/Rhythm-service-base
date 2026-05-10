@@ -1,0 +1,66 @@
+# HTTP + Postgres для /product и истории/популярности в /recommend (собирать с -DRHYTHM_WITH_POSTGRES=ON).
+# Применить sql/001_products_btree.sql и sql/002_user_actions.sql; вставить строки в products при необходимости.
+
+components_manager:
+  task_processors:
+    main-task-processor:
+      worker_threads: 4
+    fs-task-processor:
+      worker_threads: 2
+
+  default_task_processor: main-task-processor
+
+  components:
+    secdist: {}
+
+    default-secdist-provider:
+      config: configs/secdist_empty.example.json
+      missing-ok: true
+      environment-secrets-key: SECDIST_CONFIG
+
+    rhythm-pg:
+      dbconnection: 'postgresql://rhythm:rhythm@127.0.0.1:5432/rhythm'
+      blocking_task_processor: fs-task-processor
+      dns_resolver: async
+
+    dynamic-config:
+      defaults:
+        POSTGRES_CONNECTION_POOL_SETTINGS:
+          rhythm-pg:
+            max_pool_size: 10
+            min_pool_size: 1
+            max_queue_size: 100
+
+    rhythm-pg-data:
+      postgres_name: rhythm-pg
+
+    handler-action:
+      path: /action
+      method: POST
+      task_processor: main-task-processor
+
+    handler-recommend:
+      path: /recommend
+      method: GET
+      task_processor: main-task-processor
+
+    handler-product:
+      path: /product
+      method: GET
+      task_processor: main-task-processor
+
+    server:
+      listener:
+        port: 8080
+        task_processor: main-task-processor
+
+    dns-client:
+      fs-task-processor: fs-task-processor
+
+    logging:
+      fs-task-processor: fs-task-processor
+      loggers:
+        default:
+          file_path: '@stderr'
+          level: info
+          overflow_behavior: discard

@@ -1,0 +1,12 @@
+{
+  "redis_settings": {
+    "rhythm-redis-secdist": {
+      "password": "",
+      "secure_connection": false,
+      "sentinels": [
+        {"host": "127.0.0.1", "port": 6379}
+      ],
+      "shards": []
+    }
+  }
+}

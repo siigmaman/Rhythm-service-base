@@ -1,0 +1,29 @@
+# Сборка CMake
+build/
+build-*/
+cmake-build-*/
+out/
+.cache/
+
+# Установленный userver (подтягивается скриптом bootstrap)
+.deps/
+third_party/
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# Локальные секреты (шаблоны example в репозитории оставляем)
+configs/secdist.json
+
+# Python / testsuite userver
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Прочее
+.DS_Store
+*~
+*.log

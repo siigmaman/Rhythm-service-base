@@ -1,0 +1,31 @@
+# Локальный Postgres + Redis для rhythm-service (миграции из ./sql при первом старте БД).
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: rhythm
+      POSTGRES_PASSWORD: rhythm
+      POSTGRES_DB: rhythm
+    ports:
+      - "5432:5432"
+    volumes:
+      - rhythm-pg-data:/var/lib/postgresql/data
+      - ./sql:/migrations:ro
+      - ./docker/init-db.sh:/docker-entrypoint-initdb.d/01-rhythm-migrations.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rhythm -d rhythm"]
+      interval: 3s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - rhythm-redis-data:/data
+
+volumes:
+  rhythm-pg-data:
+  rhythm-redis-data:
